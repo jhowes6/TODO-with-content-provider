@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.jhowes.todo">
+    package="com.jhowes.todowithcontentprovider">
 
     <application
         android:allowBackup="true"
@@ -10,7 +10,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".MainActivity"
+            android:name="com.jhowes.todowithcontentprovider.MainActivity"
             android:label="@string/app_name"
             android:theme="@style/AppTheme.NoActionBar">
             <intent-filter>
@@ -19,12 +19,17 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".EditTaskActivity"
-            android:parentActivityName=".MainActivity">
+        <activity android:name="com.jhowes.todowithcontentprovider.EditTaskActivity"
+            android:parentActivityName="com.jhowes.todowithcontentprovider.MainActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity" />
+                android:value="com.jhowes.todowithcontentprovider.MainActivity" />
         </activity>
+        <provider
+            android:name=".MyContentProvider"
+            android:authorities="com.jhowes.todowithcontentprovider.provider">
+
+        </provider>
     </application>
 
 </manifest>

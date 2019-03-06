@@ -6,4 +6,5 @@
     <string name="task_details">Task Details:</string>
     <string name="date_completed">Date Completed:</string>
     <string name="view_completed_tasks">View Completed Tasks</string>
+    <string name="error_no_word">Error: No Word</string>
 </resources>

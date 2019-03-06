@@ -1,4 +1,4 @@
-package com.jhowes.todo;
+package com.jhowes.todowithcontentprovider;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;

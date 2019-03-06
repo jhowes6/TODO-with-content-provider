@@ -4,29 +4,30 @@
  *
  */
 
-package com.jhowes.todo;
+package com.jhowes.todowithcontentprovider;
 
 import android.app.Activity;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
-import android.widget.CursorAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.support.v7.app.AppCompatActivity;
 
 public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder> {
 
-    DatabaseHelper DB;
+
     private Context mContext;
-    private Cursor incompleteTasks;
+    private Cursor taskCursor;
 
     public static final String EXTRA_ID = "ID";
     public static final String EXTRA_TASK = "TASK";
@@ -35,16 +36,14 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     public static final String EXTRA_ISCOMPLETE = "IS_COMPLETE";
     public static final String EXTRA_FROMRECYCLER = "FROM_RECYCLER";
 
-    /**
-     * Constructor for TaskAdapter
-     *
-     *
-     * @param context
-     */
-    public TaskAdapter(Context context, Cursor cursor) {
-        mContext = context;
-        incompleteTasks = cursor;
-    }
+    // Query parameters
+    private String queryUri = Contract.CONTENT_URI.toString();
+    private String queryCompleteUri = Contract.CONTENT_COMPLETE_URI.toString();
+    private static final String[] projection = new String[] {Contract.CONTENT_PATH}; //table
+    private String selectionClause = null;
+    private String selectionArgs[] = null;
+    private String sortOrder = "ASC";
+
 
      /**
      *   ViewHolder for TaskItems
@@ -64,6 +63,27 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
      }
 
     /**
+     * Constructor for TaskAdapter
+     *
+     *
+     * @param context
+     */
+    private final LayoutInflater inflater;
+    public TaskAdapter(Context context, boolean viewingCompleted) {
+        mContext = context;
+        inflater = LayoutInflater.from(context);
+
+        if(!viewingCompleted){
+            // get a list of incomplete tasks
+            taskCursor = mContext.getContentResolver().query(Uri.parse(queryUri), null,
+                    null, null, sortOrder);
+        } else{
+            // get a list of complete tasks
+            taskCursor = mContext.getContentResolver().query(Uri.parse(queryCompleteUri),
+                    null, null, null, sortOrder);
+        }
+    }
+    /**
      *  Inflates the ViewHolder
      *  Sets the OnClickListener
      */
@@ -71,7 +91,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     @NonNull
     @Override
     public TaskViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        LayoutInflater inflater = LayoutInflater.from(mContext);
+       // LayoutInflater inflater = LayoutInflater.from(mContext);
         View itemView = inflater.inflate(R.layout.tasklist_item, parent, false);
         return new TaskViewHolder(itemView);
     }
@@ -117,21 +137,36 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     @Override
     public void onBindViewHolder(@NonNull TaskViewHolder holder, int position) {
 
-        if(!incompleteTasks.moveToPosition(position)) return;
-        String task = incompleteTasks.getString(
-                incompleteTasks.getColumnIndex(DatabaseHelper.KEY_TASK));
-        String date = incompleteTasks.getString(
-                incompleteTasks.getColumnIndex(DatabaseHelper.KEY_DATE));
-        int id = incompleteTasks.getInt(
-                incompleteTasks.getColumnIndex(DatabaseHelper.KEY_ID));
-         int isComplete = incompleteTasks.getInt(
-                incompleteTasks.getColumnIndex(DatabaseHelper.KEY_ISCOMPLETE));
+        String task = "";
+        String date = "";
+        int id = -1;
+        int isComplete = 0;
 
-        holder.taskView.setText(task);
-        holder.dateView.setText(date);
-        if(isComplete == 1) holder.checkBox.setChecked(true);
-        else holder.checkBox.setChecked(false);
+        if(taskCursor != null){
+            if(taskCursor.moveToPosition(position)){
+                int indexTask = taskCursor.getColumnIndex(Contract.TaskList.KEY_TASK);
+                task = taskCursor.getString(indexTask);
 
+
+                Toast.makeText(mContext, "TASK: " + task, Toast.LENGTH_LONG);
+                Log.d("TaskAdapter", "TASK: " + task + "\n");
+
+                holder.taskView.setText(task);
+                int indexDate = taskCursor.getColumnIndex(Contract.TaskList.KEY_DATE);
+                date = taskCursor.getString(indexDate);
+                holder.dateView.setText(date);
+                int indexId = taskCursor.getColumnIndex(Contract.TaskList.KEY_ID);
+                id = taskCursor.getInt(indexId);
+                int indexIsComplete = taskCursor.getColumnIndex(Contract.TaskList.KEY_ISCOMPLETE);
+                isComplete = taskCursor.getInt(indexIsComplete);
+                if(isComplete == 1) holder.checkBox.setChecked(true);
+                else holder.checkBox.setChecked(false);
+            } else{
+                return;
+            }
+        } else{
+            Log.e("TaskAdapter", "onBindViewHolder: Cursor is null\n");
+        }
         // Set listener on the checkbox to update the database
         holder.checkBox.setOnCheckedChangeListener(
                 new MyCheckChangedListener(id, isComplete, task, date){
@@ -139,9 +174,18 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
                     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked){
                         if(isChecked) isComplete = 1;
                         else isComplete = 0;
-
-                        MainActivity.DB.updateTask(id, isComplete, task);
+                        String[] selectionArgs = {Integer.toString(id)};
+                        ContentValues values = new ContentValues();
+                        values.put(Contract.TaskList.KEY_TASK, task);
+                        //values.put(Contract.TaskList.KEY_ID, id);
+                        values.put(Contract.TaskList.KEY_DATE, date);
+                        values.put(Contract.TaskList.KEY_ISCOMPLETE, isComplete);
+                        mContext.getContentResolver().update(Contract.CONTENT_URI, values,
+                                Contract.TaskList.KEY_ID, selectionArgs);
                         ((Activity) mContext).recreate();
+
+
+
                     }
                 }
         );
@@ -170,6 +214,8 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
      */
     @Override
     public int getItemCount() {
-        return incompleteTasks.getCount();
+
+        return taskCursor.getCount();
+
     }
 }

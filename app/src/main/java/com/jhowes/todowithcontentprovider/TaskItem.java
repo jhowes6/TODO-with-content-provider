@@ -4,11 +4,8 @@
  *
  */
 
-package com.jhowes.todo;
+package com.jhowes.todowithcontentprovider;
 
-
-import java.util.Calendar;
-import java.util.Date;
 
 public class TaskItem {
 

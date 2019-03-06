@@ -4,7 +4,7 @@
  *
  */
 
-package com.jhowes.todo;
+package com.jhowes.todowithcontentprovider;
 
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
@@ -16,7 +16,6 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import java.text.Collator;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -25,6 +24,7 @@ public class EditTaskActivity extends AppCompatActivity {
     public static final String EXTRA_TASK = "com.jhowes.todo.TASK";
     public static final String EXTRA_DATE = "com.jhowes.todo.DATE";
     public static final String EXTRA_ISCOMPLETE = "com.jhowes.todo.ISCOMPLETE";
+    public static final String EXTRA_ID = "com.jhowes.todo.ID";
 
 
     private EditText taskEditText;
@@ -98,7 +98,7 @@ public class EditTaskActivity extends AppCompatActivity {
             isComplete = 1;
         } else isComplete = 0;
         Intent replyIntent = new Intent();
-        replyIntent.putExtra(TaskAdapter.EXTRA_ID,mID);
+        replyIntent.putExtra(EXTRA_ID,mID);
         replyIntent.putExtra(EXTRA_TASK, task);
         replyIntent.putExtra(EXTRA_DATE, date);
         replyIntent.putExtra(EXTRA_ISCOMPLETE, isComplete);

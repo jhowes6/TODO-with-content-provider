@@ -4,36 +4,27 @@
  *
  */
 
-package com.jhowes.todo;
+package com.jhowes.todowithcontentprovider;
 
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
+import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.support.annotation.Nullable;
 import android.util.Log;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import static com.jhowes.todowithcontentprovider.Contract.TaskList.KEY_ID;
+import static com.jhowes.todowithcontentprovider.Contract.TaskList.KEY_TASK;
+import static com.jhowes.todowithcontentprovider.Contract.TaskList.KEY_DATE;
+import static com.jhowes.todowithcontentprovider.Contract.TaskList.KEY_ISCOMPLETE;
+import static com.jhowes.todowithcontentprovider.Contract.TaskList.TASK_TABLE;
+import static com.jhowes.todowithcontentprovider.Contract.DATABASE_NAME;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String TAG = DatabaseHelper.class.getSimpleName();
-    private static final String TASK_TABLE = "tasks";
-    private static final String DATABASE_NAME = "tasklist";
-    private static final int DATABASE_VERSION = 1;
-
-    // Column names
-    public static final String KEY_ID = "_id";
-    public static final String KEY_TASK = "task";
-    public static final String KEY_ISCOMPLETE = "is_complete";
-    public static final String KEY_DATE = "date";
-
-    // String array of columns
-    private static final String[] COLUMNS = { KEY_ID, KEY_TASK, KEY_ISCOMPLETE, KEY_DATE };
 
     // SQL query that creates the table
     private static final String TASK_TABLE_CREATE =
@@ -57,21 +48,19 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL(TASK_TABLE_CREATE);
+        ContentValues v = new ContentValues();
+        v.put(KEY_TASK, "penis");
+        db.insert(TASK_TABLE, null, v);
     }
     /**
      * inserts a new item into the database
      *
-     * @param task
-     * @param date
-     * @param isComplete
+     * @param values - a ContentValues containing the TaskItem to be inserted
      * @return
      */
-    public long insert(String task, String date, int isComplete){
+    public long insert(ContentValues values){
         long newId = 0;
-        ContentValues values = new ContentValues();
-        values.put(KEY_TASK, task);
-        values.put(KEY_DATE, date);
-        values.put(KEY_ISCOMPLETE, isComplete);
+
         try{
             if(writableDatabase == null) writableDatabase = getWritableDatabase();
             // Insert the row
@@ -108,77 +97,48 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     /**
-     * Returns the TaskItem located at 'position' in the database
+     * Returns a cursor pointing to a list of either complete or incomplete tasks
+     *
      * @param position
      * @return
      */
-    public TaskItem query(int position){
+    public Cursor query(int position){
+        String query;
+        if(position == Contract.INCOMPLETE_TASKS){
+            query = "SELECT * FROM " + TASK_TABLE + " WHERE " + KEY_ISCOMPLETE +
+                    " = 0 " + " ORDER BY " + KEY_TASK + " ASC ";
+        } else{
+            query = "SELECT * FROM " + TASK_TABLE + " WHERE " + KEY_ISCOMPLETE +
+                    " = 1 " + " ORDER BY " + KEY_TASK + " ASC ";
+        }
 
-        // construct a query that returns only the nth row of a result
-        String query = "SELECT * FROM " + TASK_TABLE + " ORDER BY " +
-                KEY_TASK + " ASC " + "LIMIT " + position + ",1";
         Cursor cursor = null;
-        TaskItem entry = new TaskItem();
         try{
-            if (readableDatabase == null) readableDatabase = getReadableDatabase();
+            if (readableDatabase == null) readableDatabase = this.getReadableDatabase();
             cursor = readableDatabase.rawQuery(query, null);
-            cursor.moveToFirst();
-            entry.setId(cursor.getInt(cursor.getColumnIndex(KEY_ID)));
-            entry.setTask(cursor.getString(cursor.getColumnIndex(KEY_TASK)));
-            entry.setComplete(cursor.getInt(cursor.getColumnIndex(KEY_ISCOMPLETE)));
-            entry.setDate(cursor.getString(cursor.getColumnIndex(KEY_DATE)));
+            //cursor.moveToFirst();
         } catch(Exception e){
             e.printStackTrace();
         } finally{
-            cursor.close();
-            return entry;
+            return cursor;
         }
     }
 
-    /**
-     * Returns a list of the incomplete tasks from the database
-     * @return
-     */
-    public Cursor getIncompleteTasks(){
-
-        String query = "SELECT * FROM " + TASK_TABLE + " WHERE " + KEY_ISCOMPLETE
-                + " = 0 " + " ORDER BY " +
-                KEY_TASK + " ASC ";
-        Cursor cursor = null;
-        try{
-            if(readableDatabase == null) readableDatabase = getReadableDatabase();
-            cursor = readableDatabase.rawQuery(query, null);
-        } catch(Exception e){
-            e.printStackTrace();
-        }
-        return cursor;
-    }
-
-    /**
-     * Returns a list of the complete tasks from the database
-     * @return
-     */
-    public Cursor getCompleteTasks(){
-        String query = "SELECT * FROM " + TASK_TABLE + " WHERE " + KEY_ISCOMPLETE
-                + " = 1 " + " ORDER BY " +
-                KEY_TASK + " ASC ";
-        Cursor cursor = null;
-        try{
-            if(readableDatabase == null) readableDatabase = getReadableDatabase();
-            cursor = readableDatabase.rawQuery(query, null);
-        }catch(Exception e){
-            e.printStackTrace();
-        }
-        return cursor;
-    }
 
     /**
      * Returns the number of incomplete tasks
      * @return
      */
-    public long count(){
-        if(readableDatabase == null) readableDatabase = getReadableDatabase();
-        return DatabaseUtils.queryNumEntries(readableDatabase, TASK_TABLE);
+    public Cursor count(){
+        MatrixCursor cursor = new MatrixCursor(new String[]{Contract.CONTENT_PATH});
+        try{
+            if(readableDatabase == null) readableDatabase = getReadableDatabase();
+            int count = (int) DatabaseUtils.queryNumEntries(readableDatabase, TASK_TABLE);
+            cursor.addRow(new Object[]{count});
+        } catch(Exception e){
+            e.printStackTrace();
+        }
+        return cursor;
     }
     /**
      * Called when the database version is upgraded

@@ -1,4 +1,4 @@
-package com.jhowes.todo;
+package com.jhowes.todowithcontentprovider;
 
 import org.junit.Test;
 
